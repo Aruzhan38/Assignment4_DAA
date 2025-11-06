@@ -1,17 +1,93 @@
 package org.example;
+import org.example.graph.common.*;
+import org.example.graph.scc.*;
+import org.example.graph.topo.*;
+import org.example.graph.dagsp.*;
+import java.io.File;
+import java.util.*;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+    public static void main(String[] args) throws Exception {
+        // 1. Read input arguments
+        String filePath = args.length > 0 ? args[0] : "data/sample-small.json";
+        String srcName = null;
+        for (String a : args) if (a.startsWith("SOURCE=")) srcName = a.substring(7);
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+        // 2. Load graph
+        Graph g = Graphs.loadJson(new File(filePath));
+        SimpleMetrics metrics = new SimpleMetrics();
+
+        System.out.println("Loaded graph with " + g.n() + " nodes.");
+
+        // 3. Find SCCs (Kosaraju)
+        var scc = KosarajuSCC.compute(g, metrics);
+        System.out.println("\nSCC components:");
+        for (int cid = 0; cid < scc.components.size(); cid++) {
+            List<Integer> comp = scc.components.get(cid);
+            System.out.print("  C" + cid + " (size=" + comp.size() + "): ");
+            for (int i = 0; i < comp.size(); i++) {
+                if (i > 0) System.out.print(", ");
+                System.out.print(g.name(comp.get(i)));
+            }
+            System.out.println();
         }
+
+        // 4. Build condensation DAG
+        var cond = Condensation.build(g, scc);
+        System.out.println("\nCondensation DAG edges:");
+        for (int u = 0; u < cond.dagAdj.size(); u++) {
+            for (int v : cond.dagAdj.get(u)) {
+                System.out.println("  C" + u + " -> C" + v);
+            }
+        }
+
+        // 5. Topological sort
+        var topoOrder = TopologicalSort.kahnOrder(cond.dagAdj.size(), cond.dagAdj, metrics);
+        System.out.println("\nTopological order of components: " + topoOrder);
+
+        // Derived node order for original graph (flattened by component order)
+        List<Integer> topoNodes = new ArrayList<>();
+        for (int cid : topoOrder) topoNodes.addAll(scc.components.get(cid));
+        System.out.println("Derived node order: ");
+        for (int i = 0; i < topoNodes.size(); i++) {
+            if (i > 0) System.out.print(" -> ");
+            System.out.print(g.name(topoNodes.get(i)));
+        }
+        System.out.println();
+
+        // 6. Shortest paths in DAG
+        int src = (srcName != null && g.id(srcName) != null) ? g.id(srcName) : topoNodes.get(0);
+        var sp = DagShortestPaths.run(g, topoNodes, src, metrics);
+        System.out.println("\nShortest distances from SOURCE=" + g.name(src));
+        for (int v : topoNodes) {
+            String d = sp.dist[v] == Long.MAX_VALUE ? "∞" : Long.toString(sp.dist[v]);
+            System.out.printf("  %s : %s\n", g.name(v), d);
+        }
+
+        // Example path to last node in topo order
+        int target = topoNodes.get(topoNodes.size() - 1);
+        List<Integer> path = sp.pathTo(target);
+        if (!path.isEmpty()) {
+            System.out.print("Example shortest path to " + g.name(target) + ": ");
+            for (int i = 0; i < path.size(); i++) {
+                if (i > 0) System.out.print(" -> ");
+                System.out.print(g.name(path.get(i)));
+            }
+            System.out.println();
+        }
+
+        // 7. Longest (critical) path
+        var lp = DagLongestPath.run(g, topoNodes);
+        System.out.println("\nCritical (longest) path length: " + lp.best[lp.end]);
+        System.out.print("Critical path: ");
+        List<Integer> cpath = lp.path();
+        for (int i = 0; i < cpath.size(); i++) {
+            if (i > 0) System.out.print(" -> ");
+            System.out.print(g.name(cpath.get(i)));
+        }
+        System.out.println();
+
+        // 8. Print metrics summary
+        System.out.println(metrics.pretty());
     }
 }
