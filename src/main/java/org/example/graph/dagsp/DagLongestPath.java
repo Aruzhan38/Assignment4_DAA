@@ -26,7 +26,7 @@ public class DagLongestPath {
                 cur = parent[cur];
                 steps++;
             }
-            // если обнаружили цикл, просто возвращаем то, что удалось восстановить
+
             return new ArrayList<>(st);
         }
     }
@@ -41,14 +41,12 @@ public class DagLongestPath {
         for (int u = 0; u < n; u++) for (Graph.Edge e : g.out(u)) indeg[e.to]++;
         for (int i = 0; i < n; i++) if (indeg[i] == 0) best[i] = 0;
 
-        // позиция в топопорядке для фильтрации рёбер
         int[] pos = new int[n];
         for (int i = 0; i < topo.size(); i++) pos[topo.get(i)] = i;
 
         for (int u : topo) {
             if (best[u] == NEG_INF) continue;
             for (Graph.Edge e : g.out(u)) {
-                // строго вперёд по топопорядку
                 if (pos[e.to] <= pos[u]) continue;
 
                 long cand = best[u] + e.w;

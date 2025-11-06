@@ -17,12 +17,10 @@ public class KosarajuSCC {
         boolean[] visited = new boolean[n];
         List<Integer> finishOrder = new ArrayList<>(n);
 
-// Pass 1 DFS on original graph to get finish order
         m.timeStart("scc_dfs1");
         for (int u = 0; u < n; u++) if (!visited[u]) dfs1(g, u, visited, finishOrder, m);
         m.timeEnd("scc_dfs1");
 
-// Pass 2 DFS on transposed graph in reverse finish order
         Graph gt = g.transpose();
         Arrays.fill(visited, false);
         int[] compId = new int[n];
@@ -43,14 +41,14 @@ public class KosarajuSCC {
         m.timeEnd("scc_dfs2");
         return new Result(compId, components);
     }
-    //helpers
+
     private static void dfs1(Graph g, int u, boolean[] vis, List<Integer> order, Metrics m){
         vis[u] = true; m.inc("scc_dfs_visits", 1);
         for (Graph.Edge e : g.out(u)) {
             m.inc("scc_dfs_edges", 1);
             if (!vis[e.to]) dfs1(g, e.to, vis, order, m);
         }
-        order.add(u); // record by finish time
+        order.add(u);
     }
 
     private static void dfs2(Graph gt, int u, boolean[] vis, List<Integer> comp, Metrics m){

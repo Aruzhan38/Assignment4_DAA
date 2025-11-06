@@ -8,18 +8,16 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        // 1.Read input arguments
+
         String filePath = args.length > 0 ? args[0] : "data/sample-small.json";
         String srcName = null;
         for (String a : args) if (a.startsWith("SOURCE=")) srcName = a.substring(7);
 
-        // 2.Load graph
         Graph g = Graphs.loadJson(new File(filePath));
         SimpleMetrics metrics = new SimpleMetrics();
 
         System.out.println("Loaded graph with " + g.n() + " nodes.");
 
-        // 3.Find SCCs (Kosaraju)
         var scc = KosarajuSCC.compute(g, metrics);
         System.out.println("\nSCC components:");
         for (int cid = 0; cid < scc.components.size(); cid++) {
@@ -32,7 +30,6 @@ public class Main {
             System.out.println();
         }
 
-        // 4.Build condensation DAG
         var cond = Condensation.build(g, scc);
         System.out.println("\nCondensation DAG edges:");
         for (int u = 0; u < cond.dagAdj.size(); u++) {
@@ -41,11 +38,9 @@ public class Main {
             }
         }
 
-        // 5.Topological sort
         var topoOrder = TopologicalSort.kahnOrder(cond.dagAdj.size(), cond.dagAdj, metrics);
         System.out.println("\nTopological order of components: " + topoOrder);
 
-        //Derived node order for original graph (flattened by component order)
         List<Integer> topoNodes = new ArrayList<>();
         for (int cid : topoOrder) topoNodes.addAll(scc.components.get(cid));
         System.out.println("Derived node order: ");
@@ -55,7 +50,6 @@ public class Main {
         }
         System.out.println();
 
-        // 6.Shortest paths in DAG
         int src = (srcName != null && g.id(srcName) != null) ? g.id(srcName) : topoNodes.get(0);
         var sp = DagShortestPaths.run(g, topoNodes, src, metrics);
         System.out.println("\nShortest distances from SOURCE=" + g.name(src));
@@ -64,7 +58,6 @@ public class Main {
             System.out.printf("  %s : %s\n", g.name(v), d);
         }
 
-        //Example path to last node in topo order
         int target = topoNodes.get(topoNodes.size() - 1);
         List<Integer> path = sp.pathTo(target);
         if (!path.isEmpty()) {
@@ -76,7 +69,6 @@ public class Main {
             System.out.println();
         }
 
-        // 7.Longest (critical) path
         var lp = DagLongestPath.run(g, topoNodes);
         System.out.println("\nCritical (longest) path length: " + lp.best[lp.end]);
         System.out.print("Critical path: ");
@@ -87,7 +79,6 @@ public class Main {
         }
         System.out.println();
 
-        // 8.Print metrics summary
         System.out.println(metrics.pretty());
     }
 }

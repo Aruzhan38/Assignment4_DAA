@@ -14,9 +14,7 @@ public class Graphs {
         Map<String,Object> root = om.readValue(f, new TypeReference<>(){});
         Graph g = new Graph();
 
-        // Проверяем какой формат
         if (root.containsKey("edges") && root.containsKey("n") && root.get("edges") instanceof List<?>) {
-            // --- Новый формат (u, v, w)
             int n = ((Number) root.get("n")).intValue();
             for (int i = 0; i < n; i++) g.addNode(String.valueOf(i));
             @SuppressWarnings("unchecked")
@@ -30,7 +28,6 @@ public class Graphs {
             return g;
         }
 
-        // --- Старый формат (from, to)
         @SuppressWarnings("unchecked")
         List<String> nodes = (List<String>) root.getOrDefault("nodes", List.of());
         for (String name : nodes) g.addNode(name);

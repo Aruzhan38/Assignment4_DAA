@@ -17,10 +17,10 @@ public class DagShortestPaths {
         }
 
         public List<Integer> pathTo(int v) {
-            if (dist[v] == Long.MAX_VALUE) return List.of(); // вершина недостижима
+            if (dist[v] == Long.MAX_VALUE) return List.of();
 
             ArrayDeque<Integer> st = new ArrayDeque<>();
-            boolean[] seen = new boolean[parent.length]; // чтобы ловить зацикливания
+            boolean[] seen = new boolean[parent.length];
             int cur = v, steps = 0, limit = parent.length;
 
             while (cur != -1 && !seen[cur] && steps <= limit) {
@@ -30,7 +30,6 @@ public class DagShortestPaths {
                 steps++;
             }
 
-            // если цикл — возвращаем то, что удалось восстановить
             return new ArrayList<>(st);
         }
 
@@ -41,7 +40,6 @@ public class DagShortestPaths {
         long[] dist = new long[n]; Arrays.fill(dist, Long.MAX_VALUE); dist[src] = 0L;
         int[] parent = new int[n]; Arrays.fill(parent, -1);
 
-        // позиция вершины в топопорядке
         int[] pos = new int[n];
         for (int i = 0; i < topo.size(); i++) pos[topo.get(i)] = i;
 
@@ -50,7 +48,6 @@ public class DagShortestPaths {
             long du = dist[u];
             if (du == Long.MAX_VALUE) continue;
             for (Graph.Edge e : g.out(u)) {
-                // игнорируем рёбра, которые идут "назад" или в ту же позицию
                 if (pos[e.to] <= pos[u]) continue;
 
                 long nd = du + e.w;

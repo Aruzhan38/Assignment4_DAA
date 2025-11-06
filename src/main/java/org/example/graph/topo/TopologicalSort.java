@@ -18,7 +18,6 @@ public class TopologicalSort {
         }
         List<Integer> order = new ArrayList<>(n);
 
-        // Main loop
         while (!q.isEmpty()) {
             int u = q.remove();
             m.inc("kahn_pop", 1);
